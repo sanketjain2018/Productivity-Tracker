@@ -32,140 +32,212 @@ import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 
 import useTasks from "../../hooks/useTasks";
 import { useThemeContext } from "../../context/ThemeContext";
-
-// ==========================================
-// STORAGE KEY
-// ==========================================
-
-const SETTINGS_STORAGE_KEY =
-  "productivity_tracker_settings";
-
-// ==========================================
-// DEFAULT SETTINGS
-// ==========================================
+import UserSettingsService from "../../services/UserSettingsService";
 
 const DEFAULT_SETTINGS = {
-  defaultPriority: "High",
+  defaultPriority: "Medium",
   showCompletedTasks: true,
 };
-
-// ==========================================
-// LOAD SETTINGS
-// ==========================================
-
-const getSavedSettings = () => {
-  try {
-    const savedSettings =
-      localStorage.getItem(
-        SETTINGS_STORAGE_KEY
-      );
-
-    if (!savedSettings) {
-      return DEFAULT_SETTINGS;
-    }
-
-    return {
-      ...DEFAULT_SETTINGS,
-      ...JSON.parse(savedSettings),
-    };
-  } catch {
-    return DEFAULT_SETTINGS;
-  }
-};
-
-// ==========================================
-// SETTINGS PAGE
-// ==========================================
 
 const Settings = () => {
   const { tasks } = useTasks();
 
   const {
-    mode,
     isDarkMode,
     toggleTheme,
   } = useThemeContext();
 
-  const [settings, setSettings] =
-    useState(getSavedSettings);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
-  const [deleteDialogOpen, setDeleteDialogOpen] =
-    useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsError, setSettingsError] = useState("");
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // ==========================================
+  // LOAD SETTINGS
+  // ==========================================
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setLoadingSettings(true);
+        setSettingsError("");
+
+        const response =
+          await UserSettingsService.getSettings();
+
+        setSettings({
+          defaultPriority:
+            response?.defaultPriority
+              ? response.defaultPriority.charAt(0) +
+                response.defaultPriority
+                  .slice(1)
+                  .toLowerCase()
+              : DEFAULT_SETTINGS.defaultPriority,
+
+          showCompletedTasks:
+            response?.showCompletedTasks ?? true,
+        });
+      } catch (error) {
+        console.error(
+          "Failed to load settings:",
+          error
+        );
+
+        setSettingsError(
+          error.message || "Failed to load settings."
+        );
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   // ==========================================
   // SAVE SETTINGS
   // ==========================================
 
-  useEffect(() => {
-    localStorage.setItem(
-      SETTINGS_STORAGE_KEY,
-      JSON.stringify(settings)
-    );
-  }, [settings]);
+  const saveSettings = async (updatedSettings) => {
+    try {
+      setSavingSettings(true);
+      setSettingsError("");
+
+      const response =
+        await UserSettingsService.updateSettings(
+          updatedSettings
+        );
+
+      setSettings({
+        defaultPriority:
+          response?.defaultPriority
+            ? response.defaultPriority.charAt(0) +
+              response.defaultPriority
+                .slice(1)
+                .toLowerCase()
+            : updatedSettings.defaultPriority,
+
+        showCompletedTasks:
+          response?.showCompletedTasks ??
+          updatedSettings.showCompletedTasks,
+      });
+    } catch (error) {
+      console.error(
+        "Failed to save settings:",
+        error
+      );
+
+      setSettingsError(
+        error.message || "Failed to save settings."
+      );
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   // ==========================================
   // DEFAULT PRIORITY
   // ==========================================
 
-  const handlePriorityChange = (
-    event
-  ) => {
-    setSettings((previous) => ({
-      ...previous,
-      defaultPriority:
-        event.target.value,
-    }));
+  const handlePriorityChange = async (event) => {
+    const defaultPriority = event.target.value;
+
+    const updatedSettings = {
+      ...settings,
+      defaultPriority,
+    };
+
+    setSettings(updatedSettings);
+
+    await saveSettings(updatedSettings);
   };
 
   // ==========================================
   // SHOW COMPLETED TASKS
   // ==========================================
 
-  const handleCompletedTasksChange = (
+  const handleCompletedTasksChange = async (
     event
   ) => {
-    setSettings((previous) => ({
-      ...previous,
-      showCompletedTasks:
-        event.target.checked,
-    }));
+    const showCompletedTasks =
+      event.target.checked;
+
+    const updatedSettings = {
+      ...settings,
+      showCompletedTasks,
+    };
+
+    setSettings(updatedSettings);
+
+    await saveSettings(updatedSettings);
   };
 
   // ==========================================
-  // OPEN DELETE DIALOG
+  // DELETE DIALOG
   // ==========================================
 
   const handleOpenDeleteDialog = () => {
     setDeleteDialogOpen(true);
   };
 
-  // ==========================================
-  // CLOSE DELETE DIALOG
-  // ==========================================
-
   const handleCloseDeleteDialog = () => {
     setDeleteDialogOpen(false);
   };
 
   // ==========================================
-  // CLEAR APPLICATION DATA
+  // DATA MANAGEMENT
   // ==========================================
 
   const handleClearData = () => {
-    localStorage.clear();
+    /*
+     * Tasks are now stored in the backend.
+     *
+     * We intentionally do NOT call localStorage.clear()
+     * because authentication, JWT and backend user data
+     * should not be deleted from the browser accidentally.
+     *
+     * A proper "Delete My Account" / "Delete My Data"
+     * backend API can be added later.
+     */
 
     setDeleteDialogOpen(false);
-
-    window.location.reload();
   };
 
   // ==========================================
-  // THEME LABEL
+  // THEME
   // ==========================================
 
   const themeLabel = isDarkMode
     ? "Dark"
     : "Light";
+
+  // ==========================================
+  // LOADING
+  // ==========================================
+
+  if (loadingSettings) {
+    return (
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: 1400,
+          mx: "auto",
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: "13px",
+            color: "text.secondary",
+          }}
+        >
+          Loading settings...
+        </Typography>
+      </Box>
+    );
+  }
 
   // ==========================================
   // UI
@@ -175,21 +247,13 @@ const Settings = () => {
     <Box
       sx={{
         width: "100%",
-
         maxWidth: 1400,
-
         mx: "auto",
       }}
     >
-      {/* ====================================== */}
       {/* PAGE HEADER */}
-      {/* ====================================== */}
 
-      <Box
-        sx={{
-          mb: 3,
-        }}
-      >
+      <Box sx={{ mb: 3 }}>
         <Typography
           component="h1"
           sx={{
@@ -197,13 +261,9 @@ const Settings = () => {
               xs: "24px",
               sm: "28px",
             },
-
             fontWeight: 700,
-
             lineHeight: 1.2,
-
-            letterSpacing:
-              "-0.02em",
+            letterSpacing: "-0.02em",
           }}
         >
           Settings
@@ -212,63 +272,69 @@ const Settings = () => {
         <Typography
           sx={{
             mt: 0.6,
-
             fontSize: "12px",
-
-            color:
-              "text.secondary",
-
+            color: "text.secondary",
             lineHeight: 1.5,
           }}
         >
           Customize your productivity
           experience and manage
-          application data.
+          application preferences.
         </Typography>
       </Box>
 
-      {/* ====================================== */}
+      {/* ERROR */}
+
+      {settingsError && (
+        <Box
+          sx={{
+            mb: 2,
+            px: 1.5,
+            py: 1.25,
+            borderRadius: 1,
+            backgroundColor: "error.lighter",
+            border: "1px solid",
+            borderColor: "error.light",
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: "11px",
+              color: "error.main",
+              fontWeight: 600,
+            }}
+          >
+            {settingsError}
+          </Typography>
+        </Box>
+      )}
+
       {/* SETTINGS GRID */}
-      {/* ====================================== */}
 
       <Box
         sx={{
           display: "grid",
-
           gridTemplateColumns: {
             xs: "1fr",
-
-            lg:
-              "minmax(0, 1.4fr) minmax(280px, 0.6fr)",
+            lg: "minmax(0, 1.4fr) minmax(280px, 0.6fr)",
           },
-
           gap: 2,
-
           alignItems: "start",
         }}
       >
-        {/* ==================================== */}
         {/* LEFT COLUMN */}
-        {/* ==================================== */}
 
         <Box
           sx={{
             display: "flex",
-
-            flexDirection:
-              "column",
-
+            flexDirection: "column",
             gap: 2,
           }}
         >
-          {/* ================================= */}
           {/* TASK PREFERENCES */}
-          {/* ================================= */}
 
           <SettingsCard
-            icon={
-              <TuneOutlinedIcon />
-            }
+            icon={<TuneOutlinedIcon />}
             title="Task Preferences"
             description="Configure your default task behavior."
           >
@@ -278,6 +344,7 @@ const Settings = () => {
             >
               <FormControl
                 size="small"
+                disabled={savingSettings}
                 sx={{
                   minWidth: {
                     xs: "100%",
@@ -290,16 +357,11 @@ const Settings = () => {
                 </InputLabel>
 
                 <Select
-                  value={
-                    settings.defaultPriority
-                  }
+                  value={settings.defaultPriority}
                   label="Priority"
-                  onChange={
-                    handlePriorityChange
-                  }
+                  onChange={handlePriorityChange}
                   sx={{
                     borderRadius: 1,
-
                     fontSize: "12px",
                   }}
                 >
@@ -319,14 +381,10 @@ const Settings = () => {
             </SettingRow>
           </SettingsCard>
 
-          {/* ================================= */}
           {/* DISPLAY PREFERENCES */}
-          {/* ================================= */}
 
           <SettingsCard
-            icon={
-              <DisplaySettingsOutlinedIcon />
-            }
+            icon={<DisplaySettingsOutlinedIcon />}
             title="Display Preferences"
             description="Control how information appears in your workspace."
           >
@@ -335,24 +393,19 @@ const Settings = () => {
               description="Keep completed tasks visible in your task lists."
             >
               <Switch
-                checked={
-                  settings.showCompletedTasks
-                }
+                checked={settings.showCompletedTasks}
                 onChange={
                   handleCompletedTasksChange
                 }
+                disabled={savingSettings}
               />
             </SettingRow>
           </SettingsCard>
 
-          {/* ================================= */}
           {/* APPEARANCE */}
-          {/* ================================= */}
 
           <SettingsCard
-            icon={
-              <PaletteOutlinedIcon />
-            }
+            icon={<PaletteOutlinedIcon />}
             title="Appearance"
             description="Choose how the productivity tracker looks."
           >
@@ -373,16 +426,10 @@ const Settings = () => {
                 onClick={toggleTheme}
                 sx={{
                   minWidth: 120,
-
                   minHeight: 36,
-
                   borderRadius: 1,
-
-                  textTransform:
-                    "none",
-
+                  textTransform: "none",
                   fontSize: "11px",
-
                   fontWeight: 600,
                 }}
               >
@@ -392,51 +439,36 @@ const Settings = () => {
           </SettingsCard>
         </Box>
 
-        {/* ==================================== */}
         {/* RIGHT COLUMN */}
-        {/* ==================================== */}
 
         <Box
           sx={{
             display: "flex",
-
-            flexDirection:
-              "column",
-
+            flexDirection: "column",
             gap: 2,
           }}
         >
-          {/* ================================= */}
           {/* WORKSPACE SUMMARY */}
-          {/* ================================= */}
 
           <Card
             sx={{
               border: "1px solid",
-
-              borderColor:
-                "divider",
-
+              borderColor: "divider",
               borderRadius: 1.5,
-
               boxShadow: "none",
-
               overflow: "hidden",
             }}
           >
             <Box
               sx={{
                 height: 3,
-
-                backgroundColor:
-                  "primary.main",
+                backgroundColor: "primary.main",
               }}
             />
 
             <CardContent
               sx={{
                 p: 2.25,
-
                 "&:last-child": {
                   pb: 2.25,
                 },
@@ -445,7 +477,6 @@ const Settings = () => {
               <Typography
                 sx={{
                   fontSize: "13px",
-
                   fontWeight: 700,
                 }}
               >
@@ -455,38 +486,26 @@ const Settings = () => {
               <Typography
                 sx={{
                   mt: 0.4,
-
                   fontSize: "10px",
-
-                  color:
-                    "text.secondary",
+                  color: "text.secondary",
                 }}
               >
-                Current productivity
-                data.
+                Current productivity data.
               </Typography>
 
-              <Divider
-                sx={{
-                  my: 2,
-                }}
-              />
+              <Divider sx={{ my: 2 }} />
 
               <SummaryStat
-                icon={
-                  <TaskAltOutlinedIcon />
-                }
+                icon={<TaskAltOutlinedIcon />}
                 label="Total Tasks"
                 value={tasks.length}
                 color="primary.main"
               />
 
               <SummaryStat
-                icon={
-                  <StorageOutlinedIcon />
-                }
-                label="Stored Locally"
-                value="Yes"
+                icon={<StorageOutlinedIcon />}
+                label="Storage"
+                value="Backend"
                 color="success.main"
               />
 
@@ -505,29 +524,21 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          {/* ================================= */}
           {/* DATA MANAGEMENT */}
-          {/* ================================= */}
 
           <Card
             sx={{
               border: "1px solid",
-
-              borderColor:
-                "error.light",
-
+              borderColor: "error.light",
               borderRadius: 1.5,
-
               boxShadow: "none",
-
-              backgroundColor:
-                "error.main",
+              backgroundColor: "error.main",
+              color: "common.white",
             }}
           >
             <CardContent
               sx={{
                 p: 2.25,
-
                 "&:last-child": {
                   pb: 2.25,
                 },
@@ -536,59 +547,33 @@ const Settings = () => {
               <Box
                 sx={{
                   display: "flex",
-
-                  alignItems:
-                    "flex-start",
-
+                  alignItems: "flex-start",
                   gap: 1.25,
                 }}
               >
                 <Box
                   sx={{
                     width: 34,
-
                     height: 34,
-
                     flexShrink: 0,
-
                     display: "flex",
-
-                    alignItems:
-                      "center",
-
-                    justifyContent:
-                      "center",
-
+                    alignItems: "center",
+                    justifyContent: "center",
                     borderRadius: 1,
-
                     backgroundColor:
                       "rgba(255,255,255,0.16)",
-
-                    color:
-                      "inherit",
                   }}
                 >
                   <StorageOutlinedIcon
-                    sx={{
-                      fontSize: 18,
-                    }}
+                    sx={{ fontSize: 18 }}
                   />
                 </Box>
 
-                <Box
-                  sx={{
-                    minWidth: 0,
-                  }}
-                >
+                <Box sx={{ minWidth: 0 }}>
                   <Typography
                     sx={{
-                      fontSize:
-                        "13px",
-
+                      fontSize: "13px",
                       fontWeight: 700,
-
-                      color:
-                        "inherit",
                     }}
                   >
                     Data Management
@@ -597,22 +582,14 @@ const Settings = () => {
                   <Typography
                     sx={{
                       mt: 0.4,
-
-                      fontSize:
-                        "10px",
-
+                      fontSize: "10px",
                       lineHeight: 1.5,
-
                       opacity: 0.85,
-
-                      color:
-                        "inherit",
                     }}
                   >
-                    Your tasks and
-                    settings are
-                    stored locally
-                    in this browser.
+                    Your tasks and settings are
+                    securely managed through
+                    the application backend.
                   </Typography>
                 </Box>
               </Box>
@@ -620,7 +597,6 @@ const Settings = () => {
               <Divider
                 sx={{
                   my: 2,
-
                   borderColor:
                     "rgba(255,255,255,0.2)",
                 }}
@@ -629,56 +605,40 @@ const Settings = () => {
               <Box
                 sx={{
                   display: "flex",
-
                   flexDirection: {
                     xs: "column",
                     sm: "row",
                   },
-
                   alignItems: {
                     xs: "stretch",
                     sm: "center",
                   },
-
-                  justifyContent:
-                    "space-between",
-
+                  justifyContent: "space-between",
                   gap: 1.5,
                 }}
               >
                 <Box>
                   <Typography
                     sx={{
-                      fontSize:
-                        "11px",
-
+                      fontSize: "11px",
                       fontWeight: 600,
-
-                      color:
-                        "inherit",
                     }}
                   >
-                    Clear all data
+                    Account data
                   </Typography>
 
                   <Typography
                     sx={{
                       mt: 0.3,
-
-                      fontSize:
-                        "10px",
-
+                      fontSize: "10px",
                       opacity: 0.8,
-
-                      color:
-                        "inherit",
                     }}
                   >
                     {tasks.length} task
                     {tasks.length === 1
                       ? ""
-                      : "s"} currently
-                    stored.
+                      : "s"} currently associated
+                    with your account.
                   </Typography>
                 </Box>
 
@@ -694,30 +654,19 @@ const Settings = () => {
                   }
                   sx={{
                     minHeight: 36,
-
                     borderRadius: 1,
-
                     px: 1.75,
-
-                    textTransform:
-                      "none",
-
+                    textTransform: "none",
                     fontSize: "11px",
-
                     fontWeight: 600,
-
                     width: {
                       xs: "100%",
                       sm: "auto",
                     },
-
                     borderColor:
                       "rgba(255,255,255,0.55)",
-
                     "&:hover": {
-                      borderColor:
-                        "inherit",
-
+                      borderColor: "inherit",
                       backgroundColor:
                         "rgba(255,255,255,0.1)",
                     },
@@ -731,78 +680,58 @@ const Settings = () => {
         </Box>
       </Box>
 
-      {/* ====================================== */}
-      {/* DELETE CONFIRMATION DIALOG */}
-      {/* ====================================== */}
+      {/* DELETE DIALOG */}
 
       <Dialog
         open={deleteDialogOpen}
-        onClose={
-          handleCloseDeleteDialog
-        }
+        onClose={handleCloseDeleteDialog}
         maxWidth="xs"
         fullWidth
       >
         <DialogTitle
           sx={{
             display: "flex",
-
-            alignItems:
-              "center",
-
+            alignItems: "center",
             gap: 1,
-
             fontSize: "17px",
-
             fontWeight: 700,
           }}
         >
-          <WarningAmberRoundedIcon
-            color="error"
-          />
+          <WarningAmberRoundedIcon color="error" />
 
-          Clear all data?
+          Data management
         </DialogTitle>
 
         <DialogContent>
           <DialogContentText
             sx={{
               fontSize: "12px",
-
               lineHeight: 1.6,
             }}
           >
-            This will remove your
-            locally stored tasks,
-            profile information,
-            settings, and saved
-            theme preference.
+            Your tasks and settings are
+            stored on the backend and linked
+            to your authenticated account.
           </DialogContentText>
 
           <Box
             sx={{
               mt: 2,
-
               p: 1.5,
-
               borderRadius: 1,
-
-              backgroundColor:
-                "error.lighter",
+              backgroundColor: "warning.lighter",
             }}
           >
             <Typography
               sx={{
                 fontSize: "11px",
-
-                color:
-                  "error.main",
-
+                color: "warning.dark",
                 fontWeight: 600,
               }}
             >
-              This action cannot be
-              undone.
+              Account deletion has not been
+              enabled yet. No backend data will
+              be deleted from this screen.
             </Typography>
           </Box>
         </DialogContent>
@@ -810,54 +739,20 @@ const Settings = () => {
         <DialogActions
           sx={{
             p: 2,
-
             gap: 1,
           }}
         >
           <Button
-            onClick={
-              handleCloseDeleteDialog
-            }
+            onClick={handleCloseDeleteDialog}
             variant="outlined"
             size="small"
             sx={{
               borderRadius: 1,
-
-              textTransform:
-                "none",
-
+              textTransform: "none",
               fontSize: "11px",
             }}
           >
-            Cancel
-          </Button>
-
-          <Button
-            onClick={handleClearData}
-            color="error"
-            variant="contained"
-            size="small"
-            startIcon={
-              <DeleteOutlineOutlinedIcon />
-            }
-            sx={{
-              borderRadius: 1,
-
-              textTransform:
-                "none",
-
-              fontSize: "11px",
-
-              fontWeight: 600,
-
-              boxShadow: "none",
-
-              "&:hover": {
-                boxShadow: "none",
-              },
-            }}
-          >
-            Clear Everything
+            Close
           </Button>
         </DialogActions>
       </Dialog>
@@ -879,12 +774,8 @@ const SettingsCard = ({
     <Card
       sx={{
         border: "1px solid",
-
-        borderColor:
-          "divider",
-
+        borderColor: "divider",
         borderRadius: 1.5,
-
         boxShadow: "none",
       }}
     >
@@ -894,7 +785,6 @@ const SettingsCard = ({
             xs: 2,
             sm: 2.5,
           },
-
           "&:last-child": {
             pb: {
               xs: 2,
@@ -903,40 +793,23 @@ const SettingsCard = ({
           },
         }}
       >
-        {/* HEADER */}
-
         <Box
           sx={{
             display: "flex",
-
-            alignItems:
-              "center",
-
+            alignItems: "center",
             gap: 1,
           }}
         >
           <Box
             sx={{
               width: 32,
-
               height: 32,
-
               display: "flex",
-
-              alignItems:
-                "center",
-
-              justifyContent:
-                "center",
-
+              alignItems: "center",
+              justifyContent: "center",
               borderRadius: 1,
-
-              backgroundColor:
-                "action.hover",
-
-              color:
-                "primary.main",
-
+              backgroundColor: "action.hover",
+              color: "primary.main",
               "& svg": {
                 fontSize: 17,
               },
@@ -948,9 +821,7 @@ const SettingsCard = ({
           <Box>
             <Typography
               sx={{
-                fontSize:
-                  "13px",
-
+                fontSize: "13px",
                 fontWeight: 700,
               }}
             >
@@ -960,12 +831,8 @@ const SettingsCard = ({
             <Typography
               sx={{
                 mt: 0.2,
-
-                fontSize:
-                  "10px",
-
-                color:
-                  "text.secondary",
+                fontSize: "10px",
+                color: "text.secondary",
               }}
             >
               {description}
@@ -973,11 +840,7 @@ const SettingsCard = ({
           </Box>
         </Box>
 
-        <Divider
-          sx={{
-            my: 2,
-          }}
-        />
+        <Divider sx={{ my: 2 }} />
 
         {children}
       </CardContent>
@@ -998,33 +861,22 @@ const SettingRow = ({
     <Box
       sx={{
         display: "flex",
-
         alignItems: {
           xs: "stretch",
           sm: "center",
         },
-
-        justifyContent:
-          "space-between",
-
+        justifyContent: "space-between",
         gap: 2,
-
         flexDirection: {
           xs: "column",
           sm: "row",
         },
       }}
     >
-      <Box
-        sx={{
-          minWidth: 0,
-        }}
-      >
+      <Box sx={{ minWidth: 0 }}>
         <Typography
           sx={{
-            fontSize:
-              "12px",
-
+            fontSize: "12px",
             fontWeight: 600,
           }}
         >
@@ -1034,15 +886,9 @@ const SettingRow = ({
         <Typography
           sx={{
             mt: 0.35,
-
-            fontSize:
-              "10px",
-
-            color:
-              "text.secondary",
-
+            fontSize: "10px",
+            color: "text.secondary",
             lineHeight: 1.5,
-
             maxWidth: 520,
           }}
         >
@@ -1053,14 +899,11 @@ const SettingRow = ({
       <Box
         sx={{
           flexShrink: 0,
-
           width: {
             xs: "100%",
             sm: "auto",
           },
-
           display: "flex",
-
           justifyContent: {
             xs: "flex-start",
             sm: "flex-end",
@@ -1087,57 +930,33 @@ const SummaryStat = ({
     <Box
       sx={{
         display: "flex",
-
-        alignItems:
-          "center",
-
-        justifyContent:
-          "space-between",
-
+        alignItems: "center",
+        justifyContent: "space-between",
         gap: 1.5,
-
         py: 1,
-
         "& + &": {
-          borderTop:
-            "1px solid",
-
-          borderColor:
-            "divider",
+          borderTop: "1px solid",
+          borderColor: "divider",
         },
       }}
     >
       <Box
         sx={{
           display: "flex",
-
-          alignItems:
-            "center",
-
+          alignItems: "center",
           gap: 1,
         }}
       >
         <Box
           sx={{
             width: 28,
-
             height: 28,
-
             display: "flex",
-
-            alignItems:
-              "center",
-
-            justifyContent:
-              "center",
-
+            alignItems: "center",
+            justifyContent: "center",
             borderRadius: 1,
-
-            backgroundColor:
-              "action.hover",
-
+            backgroundColor: "action.hover",
             color,
-
             "& svg": {
               fontSize: 15,
             },
@@ -1148,12 +967,8 @@ const SummaryStat = ({
 
         <Typography
           sx={{
-            fontSize:
-              "10px",
-
-            color:
-              "text.secondary",
-
+            fontSize: "10px",
+            color: "text.secondary",
             fontWeight: 600,
           }}
         >
@@ -1166,10 +981,7 @@ const SummaryStat = ({
         size="small"
         sx={{
           height: 24,
-
-          fontSize:
-            "10px",
-
+          fontSize: "10px",
           fontWeight: 700,
         }}
       />
