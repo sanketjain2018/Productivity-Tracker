@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -43,12 +42,9 @@ import {
   useThemeContext,
 } from "../../context/ThemeContext";
 
-// ==========================================
-// STORAGE KEY
-// ==========================================
-
-const PROFILE_STORAGE_KEY =
-  "productivity_tracker_profile";
+import {
+  useAuth,
+} from "../../context/AuthContext";
 
 // ==========================================
 // NAVBAR
@@ -58,13 +54,25 @@ const Navbar = ({
   onMenuClick,
   drawerWidth,
 }) => {
+
   const navigate = useNavigate();
+
+  // ========================================
+  // AUTHENTICATION
+  // ========================================
+
+  const {
+    user,
+    logout,
+  } = useAuth();
 
   // ========================================
   // TASKS
   // ========================================
 
-  const { tasks } = useTasks();
+  const {
+    tasks,
+  } = useTasks();
 
   // ========================================
   // THEME
@@ -102,51 +110,19 @@ const Navbar = ({
   // PROFILE DATA
   // ========================================
 
-  const [profile, setProfile] =
-    useState({
-      name: "Sanket",
-      role: "Developer",
-      profileImage: "",
-    });
+  const profile = {
+    name:
+      user?.username ||
+      "User",
 
-  // ========================================
-  // LOAD PROFILE
-  // ========================================
+    role:
+      user?.role ||
+      "USER",
 
-  useEffect(() => {
-    try {
-      const savedProfile =
-        localStorage.getItem(
-          PROFILE_STORAGE_KEY
-        );
-
-      if (!savedProfile) {
-        return;
-      }
-
-      const parsedProfile =
-        JSON.parse(savedProfile);
-
-      setProfile({
-        name:
-          parsedProfile.name ||
-          "Sanket",
-
-        role:
-          parsedProfile.role ||
-          "Developer",
-
-        profileImage:
-          parsedProfile.profileImage ||
-          "",
-      });
-    } catch (error) {
-      console.error(
-        "Failed to load profile:",
-        error
-      );
-    }
-  }, []);
+    email:
+      user?.email ||
+      "",
+  };
 
   // ========================================
   // PROFILE MENU OPEN
@@ -187,8 +163,6 @@ const Navbar = ({
   const handleProfileNavigation = () => {
     setAnchorEl(null);
 
-    restoreProfileFocus();
-
     navigate("/profile");
   };
 
@@ -199,8 +173,6 @@ const Navbar = ({
   const handleSettingsNavigation = () => {
     setAnchorEl(null);
 
-    restoreProfileFocus();
-
     navigate("/settings");
   };
 
@@ -209,12 +181,14 @@ const Navbar = ({
   // ========================================
 
   const handleLogout = () => {
+
     setAnchorEl(null);
 
-    restoreProfileFocus();
+    logout();
 
-    // Authentication/logout
-    // can be connected here later.
+    navigate("/login", {
+      replace: true,
+    });
   };
 
   // ========================================
@@ -235,6 +209,7 @@ const Navbar = ({
       ? []
       : tasks
           .filter((task) => {
+
             const title =
               task.title
                 ?.toLowerCase() || "";
@@ -268,6 +243,7 @@ const Navbar = ({
   const handleSearchChange = (
     event
   ) => {
+
     const value =
       event.target.value;
 
@@ -283,6 +259,7 @@ const Navbar = ({
   // ========================================
 
   const handleSearchFocus = () => {
+
     if (
       searchValue.trim().length > 0
     ) {
@@ -297,6 +274,7 @@ const Navbar = ({
   const handleSearchResultClick = (
     task
   ) => {
+
     setSearchValue("");
 
     setSearchOpen(false);
@@ -313,6 +291,7 @@ const Navbar = ({
   // ========================================
 
   const handleViewAllTasks = () => {
+
     setSearchValue("");
 
     setSearchOpen(false);
@@ -325,6 +304,7 @@ const Navbar = ({
   // ========================================
 
   const handleClearSearch = () => {
+
     setSearchValue("");
 
     setSearchOpen(false);
@@ -375,6 +355,7 @@ const Navbar = ({
           theme.zIndex.drawer + 1,
       }}
     >
+
       <Toolbar
         sx={{
           minHeight:
@@ -393,9 +374,10 @@ const Navbar = ({
           },
         }}
       >
-        {/* ================================== */}
-        {/* MOBILE MENU */}
-        {/* ================================== */}
+
+        {/* ==================================
+            MOBILE MENU
+        ================================== */}
 
         <IconButton
           color="inherit"
@@ -427,15 +409,16 @@ const Navbar = ({
           />
         </IconButton>
 
-        {/* ================================== */}
-        {/* SEARCH */}
-        {/* ================================== */}
+        {/* ==================================
+            SEARCH
+        ================================== */}
 
         <ClickAwayListener
           onClickAway={() =>
             setSearchOpen(false)
           }
         >
+
           <Box
             sx={{
               position: "relative",
@@ -453,6 +436,7 @@ const Navbar = ({
               },
             }}
           >
+
             <Box
               sx={{
                 height: 38,
@@ -488,6 +472,7 @@ const Navbar = ({
                 },
               }}
             >
+
               <SearchIcon
                 sx={{
                   color:
@@ -565,6 +550,7 @@ const Navbar = ({
                       "text.secondary",
                   }}
                 >
+
                   <KeyboardCommandKeyIcon
                     sx={{
                       fontSize: 13,
@@ -581,6 +567,7 @@ const Navbar = ({
                   >
                     K
                   </Typography>
+
                 </Box>
               )}
 
@@ -596,18 +583,21 @@ const Navbar = ({
                     height: 26,
                   }}
                 >
+
                   <CloseIcon
                     sx={{
                       fontSize: 16,
                     }}
                   />
+
                 </IconButton>
               )}
+
             </Box>
 
-            {/* ================================= */}
-            {/* SEARCH DROPDOWN */}
-            {/* ================================= */}
+            {/* =================================
+                SEARCH DROPDOWN
+            ================================= */}
 
             {searchOpen && (
               <Paper
@@ -641,9 +631,11 @@ const Navbar = ({
                   zIndex: 2000,
                 }}
               >
+
                 {searchResults.length >
                 0 ? (
                   <>
+
                     <Box
                       sx={{
                         px: 1.75,
@@ -651,6 +643,7 @@ const Navbar = ({
                         pb: 0.75,
                       }}
                     >
+
                       <Typography
                         sx={{
                           fontSize:
@@ -673,10 +666,12 @@ const Navbar = ({
                       >
                         Matching Tasks
                       </Typography>
+
                     </Box>
 
                     {searchResults.map(
                       (task) => (
+
                         <MenuItem
                           key={task.id}
                           onClick={() =>
@@ -697,22 +692,30 @@ const Navbar = ({
                             },
                           }}
                         >
+
                           <Box
                             sx={{
                               width: 32,
                               height: 32,
+
                               borderRadius: 1,
+
                               display:
                                 "flex",
+
                               alignItems:
                                 "center",
+
                               justifyContent:
                                 "center",
+
                               backgroundColor:
                                 "action.hover",
+
                               flexShrink: 0,
                             }}
                           >
+
                             <Typography
                               sx={{
                                 fontSize:
@@ -722,6 +725,7 @@ const Navbar = ({
                               {task.icon ||
                                 "📝"}
                             </Typography>
+
                           </Box>
 
                           <Box
@@ -730,10 +734,12 @@ const Navbar = ({
                               flexGrow: 1,
                             }}
                           >
+
                             <Typography
                               variant="body2"
                               sx={{
                                 fontWeight: 600,
+
                                 fontSize:
                                   "13px",
                               }}
@@ -746,13 +752,18 @@ const Navbar = ({
                               sx={{
                                 display:
                                   "flex",
+
                                 alignItems:
                                   "center",
+
                                 gap: 0.75,
+
                                 mt: 0.3,
+
                                 minWidth: 0,
                               }}
                             >
+
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
@@ -777,7 +788,9 @@ const Navbar = ({
                                 {task.category ||
                                   "General"}
                               </Typography>
+
                             </Box>
+
                           </Box>
 
                           <Chip
@@ -804,6 +817,7 @@ const Navbar = ({
                                 "uppercase",
                             }}
                           />
+
                         </MenuItem>
                       )
                     )}
@@ -831,6 +845,7 @@ const Navbar = ({
                         gap: 0.75,
                       }}
                     >
+
                       View all tasks
 
                       <ArrowForwardIcon
@@ -838,38 +853,52 @@ const Navbar = ({
                           fontSize: 16,
                         }}
                       />
+
                     </MenuItem>
+
                   </>
                 ) : (
+
                   <Box
                     sx={{
                       px: 2,
                       py: 3,
-                      textAlign: "center",
+
+                      textAlign:
+                        "center",
                     }}
                   >
+
                     <Box
                       sx={{
                         width: 38,
                         height: 38,
+
                         mx: "auto",
                         mb: 1,
+
                         borderRadius: 1,
+
                         display: "flex",
+
                         alignItems:
                           "center",
+
                         justifyContent:
                           "center",
+
                         backgroundColor:
                           "action.hover",
                       }}
                     >
+
                       <SearchIcon
                         sx={{
                           color:
                             "text.secondary",
                         }}
                       />
+
                     </Box>
 
                     <Typography
@@ -888,16 +917,20 @@ const Navbar = ({
                       Try another task
                       name or category.
                     </Typography>
+
                   </Box>
                 )}
+
               </Paper>
             )}
+
           </Box>
+
         </ClickAwayListener>
 
-        {/* ================================== */}
-        {/* SPACER */}
-        {/* ================================== */}
+        {/* ==================================
+            SPACER
+        ================================== */}
 
         <Box
           sx={{
@@ -905,11 +938,12 @@ const Navbar = ({
           }}
         />
 
-        {/* ================================== */}
-        {/* NOTIFICATIONS */}
-        {/* ================================== */}
+        {/* ==================================
+            NOTIFICATIONS
+        ================================== */}
 
         <Tooltip title="Notifications">
+
           <IconButton
             color="inherit"
             aria-label="notifications"
@@ -923,30 +957,38 @@ const Navbar = ({
               },
             }}
           >
+
             <Badge
               badgeContent={3}
               color="error"
               sx={{
                 "& .MuiBadge-badge": {
                   fontSize: 9,
+
                   minWidth: 15,
+
                   height: 15,
+
                   padding: 0,
                 },
               }}
             >
+
               <NotificationsNoneOutlinedIcon
                 sx={{
                   fontSize: 20,
                 }}
               />
+
             </Badge>
+
           </IconButton>
+
         </Tooltip>
 
-        {/* ================================== */}
-        {/* THEME */}
-        {/* ================================== */}
+        {/* ==================================
+            THEME
+        ================================== */}
 
         <Tooltip
           title={
@@ -955,6 +997,7 @@ const Navbar = ({
               : "Switch to dark mode"
           }
         >
+
           <IconButton
             color="inherit"
             onClick={toggleTheme}
@@ -968,6 +1011,7 @@ const Navbar = ({
               height: 38,
             }}
           >
+
             {isDarkMode ? (
               <LightModeOutlinedIcon
                 sx={{
@@ -981,12 +1025,14 @@ const Navbar = ({
                 }}
               />
             )}
+
           </IconButton>
+
         </Tooltip>
 
-        {/* ================================== */}
-        {/* PROFILE BUTTON */}
-        {/* ================================== */}
+        {/* ==================================
+            PROFILE BUTTON
+        ================================== */}
 
         <Box
           ref={profileButtonRef}
@@ -1046,11 +1092,8 @@ const Navbar = ({
             },
           }}
         >
+
           <Avatar
-            src={
-              profile.profileImage ||
-              undefined
-            }
             alt={
               profile.name ||
               "Profile"
@@ -1068,8 +1111,7 @@ const Navbar = ({
               fontWeight: 700,
             }}
           >
-            {!profile.profileImage &&
-              avatarLetter}
+            {avatarLetter}
           </Avatar>
 
           <Box
@@ -1082,6 +1124,7 @@ const Navbar = ({
               minWidth: 70,
             }}
           >
+
             <Typography
               sx={{
                 fontSize: "12px",
@@ -1113,12 +1156,14 @@ const Navbar = ({
             >
               {profile.role}
             </Typography>
+
           </Box>
+
         </Box>
 
-        {/* ================================== */}
-        {/* PROFILE MENU */}
-        {/* ================================== */}
+        {/* ==================================
+            PROFILE MENU
+        ================================== */}
 
         <Menu
           anchorEl={anchorEl}
@@ -1134,7 +1179,7 @@ const Navbar = ({
             sx: {
               mt: 1,
 
-              minWidth: 210,
+              minWidth: 230,
 
               border:
                 "1px solid",
@@ -1149,6 +1194,59 @@ const Navbar = ({
             },
           }}
         >
+
+          {/* PROFILE HEADER */}
+
+          <Box
+            sx={{
+              px: 2,
+
+              py: 1.5,
+            }}
+          >
+
+            <Typography
+              sx={{
+                fontSize: "13px",
+
+                fontWeight: 700,
+              }}
+            >
+              {profile.name}
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: 0.3,
+
+                fontSize: "11px",
+
+                color:
+                  "text.secondary",
+              }}
+              noWrap
+            >
+              {profile.email}
+            </Typography>
+
+            <Chip
+              label={profile.role}
+              size="small"
+              sx={{
+                mt: 1,
+
+                height: 22,
+
+                fontSize: "9px",
+
+                fontWeight: 600,
+              }}
+            />
+
+          </Box>
+
+          <Divider />
+
           {/* PROFILE */}
 
           <MenuItem
@@ -1159,16 +1257,21 @@ const Navbar = ({
               py: 1.1,
             }}
           >
+
             <ListItemIcon>
+
               <PersonOutlineOutlinedIcon
                 fontSize="small"
               />
+
             </ListItemIcon>
 
             <Box>
+
               <Typography
                 sx={{
                   fontSize: "13px",
+
                   fontWeight: 600,
                 }}
               >
@@ -1178,13 +1281,16 @@ const Navbar = ({
               <Typography
                 sx={{
                   fontSize: "10px",
+
                   color:
                     "text.secondary",
                 }}
               >
                 View your profile
               </Typography>
+
             </Box>
+
           </MenuItem>
 
           {/* SETTINGS */}
@@ -1197,16 +1303,21 @@ const Navbar = ({
               py: 1.1,
             }}
           >
+
             <ListItemIcon>
+
               <SettingsOutlinedIcon
                 fontSize="small"
               />
+
             </ListItemIcon>
 
             <Box>
+
               <Typography
                 sx={{
                   fontSize: "13px",
+
                   fontWeight: 600,
                 }}
               >
@@ -1216,13 +1327,16 @@ const Navbar = ({
               <Typography
                 sx={{
                   fontSize: "10px",
+
                   color:
                     "text.secondary",
                 }}
               >
                 Manage preferences
               </Typography>
+
             </Box>
+
           </MenuItem>
 
           <Divider />
@@ -1235,7 +1349,9 @@ const Navbar = ({
               py: 1.1,
             }}
           >
+
             <ListItemIcon>
+
               <LogoutOutlinedIcon
                 fontSize="small"
                 sx={{
@@ -1243,21 +1359,28 @@ const Navbar = ({
                     "error.main",
                 }}
               />
+
             </ListItemIcon>
 
             <Typography
               sx={{
                 fontSize: "13px",
+
                 fontWeight: 600,
+
                 color:
                   "error.main",
               }}
             >
               Logout
             </Typography>
+
           </MenuItem>
+
         </Menu>
+
       </Toolbar>
+
     </AppBar>
   );
 };
