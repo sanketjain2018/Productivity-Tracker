@@ -229,7 +229,7 @@ const CalendarDayCard = ({
               textOverflow: "ellipsis",
             }}
           >
-            {task.icon} {task.title}
+            {task.title}
           </Typography>
         ))}
 

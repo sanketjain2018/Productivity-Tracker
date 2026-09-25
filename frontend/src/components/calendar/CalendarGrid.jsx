@@ -48,8 +48,7 @@ const CalendarGrid = ({
 
     return tasks.filter(
       (task) =>
-        task.taskDate ===
-        formattedDate
+        task.dueDate === formattedDate
     );
   };
 
@@ -61,19 +60,12 @@ const CalendarGrid = ({
     <Box
       sx={{
         width: "100%",
-
         minWidth: 0,
-
         border: "1px solid",
-
         borderColor: "divider",
-
         borderRadius: 1.5,
-
         overflow: "hidden",
-
-        backgroundColor:
-          "background.paper",
+        backgroundColor: "background.paper",
       }}
     >
       {/* ====================================== */}
@@ -83,18 +75,11 @@ const CalendarGrid = ({
       <Box
         sx={{
           display: "grid",
-
           gridTemplateColumns:
             "repeat(7, minmax(0, 1fr))",
-
-          borderBottom:
-            "1px solid",
-
-          borderColor:
-            "divider",
-
-          backgroundColor:
-            "action.hover",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "action.hover",
         }}
       >
         {WEEK_DAYS.map(
@@ -103,34 +88,23 @@ const CalendarGrid = ({
               key={day}
               sx={{
                 minWidth: 0,
-
                 px: {
                   xs: 0.5,
                   sm: 1,
                 },
-
                 py: {
                   xs: 1,
                   sm: 1.25,
                 },
-
                 display: "flex",
-
-                alignItems:
-                  "center",
-
-                justifyContent:
-                  "center",
-
+                alignItems: "center",
+                justifyContent: "center",
                 borderRight:
                   index <
-                  WEEK_DAYS.length -
-                    1
+                  WEEK_DAYS.length - 1
                     ? "1px solid"
                     : "none",
-
-                borderColor:
-                  "divider",
+                borderColor: "divider",
               }}
             >
               <Typography
@@ -140,26 +114,13 @@ const CalendarGrid = ({
                     sm: "10px",
                     md: "11px",
                   },
-
                   fontWeight: 700,
-
-                  color:
-                    "text.secondary",
-
-                  textTransform:
-                    "uppercase",
-
-                  letterSpacing:
-                    "0.05em",
-
-                  overflow:
-                    "hidden",
-
-                  textOverflow:
-                    "ellipsis",
-
-                  whiteSpace:
-                    "nowrap",
+                  color: "text.secondary",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {day}
@@ -176,10 +137,8 @@ const CalendarGrid = ({
       <Box
         sx={{
           display: "grid",
-
           gridTemplateColumns:
             "repeat(7, minmax(0, 1fr))",
-
           width: "100%",
         }}
       >
@@ -189,38 +148,24 @@ const CalendarGrid = ({
               key={`${day ?? "empty"}-${index}`}
               sx={{
                 minWidth: 0,
-
                 borderRight:
-                  (index + 1) % 7 !==
-                  0
+                  (index + 1) % 7 !== 0
                     ? "1px solid"
                     : "none",
-
                 borderBottom:
                   index <
-                  calendarDays.length -
-                    7
+                  calendarDays.length - 7
                     ? "1px solid"
                     : "none",
-
-                borderColor:
-                  "divider",
+                borderColor: "divider",
               }}
             >
               <CalendarDayCard
                 day={day}
-                currentMonth={
-                  currentMonth
-                }
-                currentYear={
-                  currentYear
-                }
-                onClick={
-                  onDayClick
-                }
-                tasks={getDayTasks(
-                  day
-                )}
+                currentMonth={currentMonth}
+                currentYear={currentYear}
+                onClick={onDayClick}
+                tasks={getDayTasks(day)}
               />
             </Box>
           )

@@ -6,10 +6,8 @@ import {
   Typography,
 } from "@mui/material";
 
-import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import RadioButtonUncheckedOutlinedIcon from "@mui/icons-material/RadioButtonUncheckedOutlined";
-import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 
 // ==========================================
 // PRIORITY CONFIG
@@ -55,21 +53,12 @@ const getPriorityConfig = (priority) => {
 // CALENDAR TASK ITEM
 // ==========================================
 
-const CalendarTaskItem = ({
-  task,
-}) => {
+const CalendarTaskItem = ({ task }) => {
   const isCompleted =
     task.status === "completed";
 
   const priority =
-    getPriorityConfig(
-      task.priority
-    );
-
-  const activities =
-    Array.isArray(task.activities)
-      ? task.activities
-      : [];
+    getPriorityConfig(task.priority);
 
   return (
     <Card
@@ -81,15 +70,13 @@ const CalendarTaskItem = ({
 
         borderRadius: 1.5,
 
-        borderColor:
-          isCompleted
-            ? "rgba(34, 197, 94, 0.35)"
-            : "divider",
+        borderColor: isCompleted
+          ? "rgba(34, 197, 94, 0.35)"
+          : "divider",
 
-        backgroundColor:
-          isCompleted
-            ? "rgba(34, 197, 94, 0.025)"
-            : "background.paper",
+        backgroundColor: isCompleted
+          ? "rgba(34, 197, 94, 0.025)"
+          : "background.paper",
 
         boxShadow: "none",
 
@@ -97,10 +84,9 @@ const CalendarTaskItem = ({
           "border-color 0.18s ease, box-shadow 0.18s ease",
 
         "&:hover": {
-          borderColor:
-            isCompleted
-              ? "success.main"
-              : "primary.main",
+          borderColor: isCompleted
+            ? "success.main"
+            : "primary.main",
 
           boxShadow:
             "0 6px 18px rgba(15, 23, 42, 0.07)",
@@ -123,10 +109,9 @@ const CalendarTaskItem = ({
 
           width: 3,
 
-          backgroundColor:
-            isCompleted
-              ? "success.main"
-              : priority.accent,
+          backgroundColor: isCompleted
+            ? "success.main"
+            : priority.accent,
         }}
       />
 
@@ -153,11 +138,9 @@ const CalendarTaskItem = ({
           sx={{
             display: "flex",
 
-            alignItems:
-              "flex-start",
+            alignItems: "flex-start",
 
-            justifyContent:
-              "space-between",
+            justifyContent: "space-between",
 
             gap: 1.5,
           }}
@@ -168,8 +151,7 @@ const CalendarTaskItem = ({
             sx={{
               display: "flex",
 
-              alignItems:
-                "flex-start",
+              alignItems: "flex-start",
 
               gap: 1.25,
 
@@ -190,33 +172,27 @@ const CalendarTaskItem = ({
 
                 display: "flex",
 
-                alignItems:
-                  "center",
+                alignItems: "center",
 
-                justifyContent:
-                  "center",
+                justifyContent: "center",
 
                 borderRadius: 1,
 
-                backgroundColor:
-                  isCompleted
-                    ? "rgba(34, 197, 94, 0.08)"
-                    : "action.hover",
+                backgroundColor: isCompleted
+                  ? "rgba(34, 197, 94, 0.08)"
+                  : "action.hover",
 
-                color:
-                  isCompleted
-                    ? "success.main"
-                    : "primary.main",
+                color: isCompleted
+                  ? "success.main"
+                  : "primary.main",
 
-                fontSize:
-                  "1rem",
+                fontSize: "1rem",
               }}
             >
-              {task.icon ||
-                "📝"}
+              {isCompleted ? "✓" : "📝"}
             </Box>
 
-            {/* TITLE + TIME */}
+            {/* TITLE */}
 
             <Box
               sx={{
@@ -227,72 +203,55 @@ const CalendarTaskItem = ({
             >
               <Typography
                 sx={{
-                  fontSize:
-                    "13px",
+                  fontSize: "13px",
 
                   fontWeight: 700,
 
                   lineHeight: 1.35,
 
-                  color:
-                    "text.primary",
+                  color: "text.primary",
 
-                  textDecoration:
-                    isCompleted
-                      ? "line-through"
-                      : "none",
+                  textDecoration: isCompleted
+                    ? "line-through"
+                    : "none",
 
-                  display:
-                    "-webkit-box",
+                  display: "-webkit-box",
 
                   WebkitLineClamp: 2,
 
-                  WebkitBoxOrient:
-                    "vertical",
+                  WebkitBoxOrient: "vertical",
 
-                  overflow:
-                    "hidden",
+                  overflow: "hidden",
                 }}
               >
                 {task.title}
               </Typography>
 
-              {/* TIME */}
+              {/* DESCRIPTION */}
 
-              <Box
-                sx={{
-                  display: "flex",
-
-                  alignItems:
-                    "center",
-
-                  gap: 0.5,
-
-                  mt: 0.6,
-
-                  color:
-                    "text.secondary",
-                }}
-              >
-                <AccessTimeOutlinedIcon
-                  sx={{
-                    fontSize: 14,
-                  }}
-                />
-
+              {task.description && (
                 <Typography
                   sx={{
-                    fontSize:
-                      "10px",
+                    mt: 0.6,
 
-                    fontWeight: 500,
+                    fontSize: "10px",
+
+                    lineHeight: 1.45,
+
+                    color: "text.secondary",
+
+                    display: "-webkit-box",
+
+                    WebkitLineClamp: 2,
+
+                    WebkitBoxOrient: "vertical",
+
+                    overflow: "hidden",
                   }}
                 >
-                  {task.startTime}{" "}
-                  –{" "}
-                  {task.endTime}
+                  {task.description}
                 </Typography>
-              </Box>
+              )}
             </Box>
           </Box>
 
@@ -300,12 +259,9 @@ const CalendarTaskItem = ({
 
           <Chip
             label={
-              task.priority ||
-              "Medium"
+              task.priority || "Medium"
             }
-            color={
-              priority.color
-            }
+            color={priority.color}
             size="small"
             variant="outlined"
             sx={{
@@ -313,13 +269,11 @@ const CalendarTaskItem = ({
 
               flexShrink: 0,
 
-              fontSize:
-                "9px",
+              fontSize: "9px",
 
               fontWeight: 700,
 
-              textTransform:
-                "uppercase",
+              textTransform: "uppercase",
             }}
           />
         </Box>
@@ -332,8 +286,7 @@ const CalendarTaskItem = ({
           sx={{
             display: "flex",
 
-            alignItems:
-              "center",
+            alignItems: "center",
 
             flexWrap: "wrap",
 
@@ -342,44 +295,28 @@ const CalendarTaskItem = ({
             mt: 1.5,
           }}
         >
-          {/* CATEGORY */}
+          {/* DUE DATE */}
 
-          {task.category && (
-            <Chip
-              icon={
-                <CategoryOutlinedIcon
-                  sx={{
-                    fontSize:
-                      "13px !important",
-                  }}
-                />
-              }
-              label={
-                task.category
-              }
-              size="small"
-              variant="outlined"
-              sx={{
-                height: 23,
+          <Chip
+            label={`Due: ${task.dueDate}`}
+            size="small"
+            variant="outlined"
+            sx={{
+              height: 23,
 
-                borderColor:
-                  "divider",
+              borderColor: "divider",
 
-                color:
-                  "text.secondary",
+              color: "text.secondary",
 
-                fontSize:
-                  "9px",
+              fontSize: "9px",
 
-                fontWeight: 500,
+              fontWeight: 500,
 
-                "& .MuiChip-label":
-                  {
-                    px: 0.75,
-                  },
-              }}
-            />
-          )}
+              "& .MuiChip-label": {
+                px: 0.75,
+              },
+            }}
+          />
 
           {/* STATUS */}
 
@@ -412,169 +349,20 @@ const CalendarTaskItem = ({
                 ? "success"
                 : "default"
             }
-            variant={
-              isCompleted
-                ? "outlined"
-                : "outlined"
-            }
+            variant="outlined"
             sx={{
               height: 23,
 
-              fontSize:
-                "9px",
+              fontSize: "9px",
 
               fontWeight: 600,
 
-              "& .MuiChip-label":
-                {
-                  px: 0.75,
-                },
+              "& .MuiChip-label": {
+                px: 0.75,
+              },
             }}
           />
         </Box>
-
-        {/* ====================================== */}
-        {/* ACTIVITIES */}
-        {/* ====================================== */}
-
-        {activities.length >
-          0 && (
-          <Box
-            sx={{
-              mt: 1.5,
-
-              pt: 1.5,
-
-              borderTop:
-                "1px solid",
-
-              borderColor:
-                "divider",
-            }}
-          >
-            <Typography
-              sx={{
-                mb: 0.75,
-
-                fontSize:
-                  "9px",
-
-                fontWeight: 700,
-
-                color:
-                  "text.secondary",
-
-                textTransform:
-                  "uppercase",
-
-                letterSpacing:
-                  "0.05em",
-              }}
-            >
-              Activities
-            </Typography>
-
-            <Box
-              sx={{
-                display: "flex",
-
-                flexDirection:
-                  "column",
-
-                gap: 0.6,
-              }}
-            >
-              {activities
-                .slice(0, 4)
-                .map(
-                  (
-                    activity,
-                    index
-                  ) => (
-                    <Box
-                      key={`${task.id}-activity-${index}`}
-                      sx={{
-                        display:
-                          "flex",
-
-                        alignItems:
-                          "flex-start",
-
-                        gap: 0.75,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: 5,
-
-                          height: 5,
-
-                          mt: "5px",
-
-                          borderRadius:
-                            "50%",
-
-                          backgroundColor:
-                            isCompleted
-                              ? "success.main"
-                              : "primary.main",
-
-                          flexShrink: 0,
-                        }}
-                      />
-
-                      <Typography
-                        sx={{
-                          fontSize:
-                            "10px",
-
-                          lineHeight:
-                            1.45,
-
-                          color:
-                            "text.secondary",
-
-                          textDecoration:
-                            isCompleted
-                              ? "line-through"
-                              : "none",
-
-                          opacity:
-                            isCompleted
-                              ? 0.65
-                              : 1,
-                        }}
-                      >
-                        {activity}
-                      </Typography>
-                    </Box>
-                  )
-                )}
-
-              {activities.length >
-                4 && (
-                <Typography
-                  sx={{
-                    mt: 0.25,
-
-                    fontSize:
-                      "9px",
-
-                    fontWeight: 600,
-
-                    color:
-                      "primary.main",
-                  }}
-                >
-                  +
-                  {activities.length -
-                    4}{" "}
-                  more activities
-                </Typography>
-              )}
-            </Box>
-          </Box>
-        )}
       </CardContent>
     </Card>
   );
