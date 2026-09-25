@@ -110,15 +110,20 @@ const Planner = () => {
   // SAVE TASK
   // ==========================================
 
-  const handleSaveTask = (task) => {
+  const handleSaveTask = async (task) => {
+  try {
+
     if (selectedTask) {
-      updateTask(task);
+
+      await updateTask(task);
 
       toast.success(
         "Task updated successfully!"
       );
+
     } else {
-      addTask(task);
+
+      await addTask(task);
 
       toast.success(
         "Task added successfully!"
@@ -126,7 +131,15 @@ const Planner = () => {
     }
 
     handleCloseDialog();
-  };
+
+  } catch (error) {
+
+    toast.error(
+      error.message ||
+      "Unable to save task."
+    );
+  }
+};
 
   // ==========================================
   // OPEN DELETE DIALOG
@@ -142,26 +155,44 @@ const Planner = () => {
   // CONFIRM DELETE
   // ==========================================
 
-  const confirmDeleteTask = () => {
+  const confirmDeleteTask = async () => {
+
   if (!taskToDelete) {
     return;
   }
 
-  const deleted =
-    deleteTask(taskToDelete.id);
+  try {
 
-  if (deleted) {
-    toast.success(
-      "Task deleted successfully!"
-    );
-  } else {
+    const deleted =
+      await deleteTask(
+        taskToDelete.id
+      );
+
+    if (deleted) {
+
+      toast.success(
+        "Task deleted successfully!"
+      );
+
+    } else {
+
+      toast.error(
+        "Unable to delete task."
+      );
+    }
+
+  } catch (error) {
+
     toast.error(
+      error.message ||
       "Unable to delete task."
     );
-  }
 
-  setDeleteDialogOpen(false);
-  setTaskToDelete(null);
+  } finally {
+
+    setDeleteDialogOpen(false);
+    setTaskToDelete(null);
+  }
 };
 
   // ==========================================

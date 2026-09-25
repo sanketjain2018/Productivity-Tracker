@@ -1,97 +1,252 @@
-import dailyTasks from "../data/dailyTasks";
+import AuthService from "./AuthService";
 
-const STORAGE_KEY = "productivity-tracker-tasks";
+const API_BASE_URL = "http://localhost:8080/api/tasks";
 
-class TaskService {
-  // ==========================================
-  // GET ALL TASKS
-  // ==========================================
+const getHeaders = () => {
+  const token = AuthService.getToken();
 
-  getTasks() {
-    const storedTasks = localStorage.getItem(
-      STORAGE_KEY
-    );
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+};
 
-    if (storedTasks) {
-      return JSON.parse(storedTasks);
+const handleResponse = async (response) => {
+  if (response.ok) {
+    if (response.status === 204) {
+      return null;
     }
 
-    // First time opening application
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(dailyTasks)
+    return response.json();
+  }
+
+  let message = "Request failed";
+
+  try {
+    const error = await response.json();
+
+    message =
+      error.message ||
+      error.error ||
+      message;
+  } catch {
+    // Ignore invalid error response
+  }
+
+  if (response.status === 401) {
+    AuthService.logout();
+
+    window.location.href = "/login";
+
+    throw new Error(
+      "Session expired. Please login again."
+    );
+  }
+
+  if (response.status === 403) {
+    throw new Error(
+      "You are not authorized to perform this action."
+    );
+  }
+
+  throw new Error(message);
+};
+
+const normalizeStatusForApi = (status) => {
+  const normalized =
+    status?.toString().trim().toLowerCase();
+
+  return normalized === "completed"
+    ? "COMPLETED"
+    : "TODO";
+};
+
+const normalizePriorityForApi = (priority) => {
+  const normalized =
+    priority?.toString().trim().toLowerCase();
+
+  switch (normalized) {
+    case "high":
+      return "HIGH";
+
+    case "medium":
+      return "MEDIUM";
+
+    case "low":
+      return "LOW";
+
+    case "normal":
+      return "MEDIUM";
+
+    default:
+      return "MEDIUM";
+  }
+};
+
+const TaskService = {
+
+  // =========================
+  // GET ALL TASKS
+  // =========================
+
+  async getTasks() {
+    const response = await fetch(API_BASE_URL, {
+      method: "GET",
+      headers: getHeaders(),
+    });
+
+    return handleResponse(response);
+  },
+
+  // =========================
+  // GET TASK BY ID
+  // =========================
+
+  async getTaskById(taskId) {
+    const response = await fetch(
+      `${API_BASE_URL}/${taskId}`,
+      {
+        method: "GET",
+        headers: getHeaders(),
+      }
     );
 
-    return dailyTasks;
-  }
+    return handleResponse(response);
+  },
 
-  // ==========================================
-  // SAVE ALL TASKS
-  // ==========================================
+  // =========================
+  // GET TASK SUMMARY
+  // =========================
 
-  saveTasks(tasks) {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(tasks)
+  async getTaskSummary() {
+    const response = await fetch(
+      `${API_BASE_URL}/summary`,
+      {
+        method: "GET",
+        headers: getHeaders(),
+      }
     );
-  }
 
-  // ==========================================
-  // ADD TASK
-  // ==========================================
+    return handleResponse(response);
+  },
 
-  addTask(newTask) {
-    const tasks = this.getTasks();
+  // =========================
+  // GET TODAY'S TASKS
+  // =========================
 
-    tasks.push(newTask);
+  async getTodayTasks() {
+    const response = await fetch(
+      `${API_BASE_URL}/today`,
+      {
+        method: "GET",
+        headers: getHeaders(),
+      }
+    );
 
-    this.saveTasks(tasks);
+    return handleResponse(response);
+  },
 
-    return tasks;
-  }
+  // =========================
+  // GET TASKS BY DATE
+  // =========================
 
-  // ==========================================
+  async getTasksByDate(date) {
+    const response = await fetch(
+      `${API_BASE_URL}/date/${date}`,
+      {
+        method: "GET",
+        headers: getHeaders(),
+      }
+    );
+
+    return handleResponse(response);
+  },
+
+  // =========================
+  // CREATE TASK
+  // =========================
+
+  async addTask(task) {
+    const response = await fetch(
+      API_BASE_URL,
+      {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          title: task.title,
+          description: task.description || "",
+          status: normalizeStatusForApi(
+            task.status
+          ),
+          priority: normalizePriorityForApi(
+            task.priority
+          ),
+          dueDate: task.dueDate,
+        }),
+      }
+    );
+
+    return handleResponse(response);
+  },
+
+  // =========================
   // UPDATE TASK
-  // ==========================================
+  // =========================
 
-  updateTask(updatedTask) {
-    const tasks = this.getTasks().map((task) =>
-      task.id === updatedTask.id
-        ? updatedTask
-        : task
+  async updateTask(task) {
+    const response = await fetch(
+      `${API_BASE_URL}/${task.id}`,
+      {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          title: task.title,
+          description: task.description || "",
+          status: normalizeStatusForApi(
+            task.status
+          ),
+          priority: normalizePriorityForApi(
+            task.priority
+          ),
+          dueDate: task.dueDate,
+        }),
+      }
     );
 
-    this.saveTasks(tasks);
+    return handleResponse(response);
+  },
 
-    return tasks;
-  }
-
-  // ==========================================
+  // =========================
   // DELETE TASK
-  // ==========================================
+  // =========================
 
-  deleteTask(taskId) {
-    const tasks = this.getTasks().filter(
-      (task) => task.id !== taskId
+  async deleteTask(taskId) {
+    const response = await fetch(
+      `${API_BASE_URL}/${taskId}`,
+      {
+        method: "DELETE",
+        headers: getHeaders(),
+      }
     );
 
-    this.saveTasks(tasks);
+    return handleResponse(response);
+  },
 
-    return tasks;
-  }
+  // =========================
+  // COMPLETE TASK
+  // =========================
 
-  // ==========================================
-  // RESET TO DEFAULT TASKS
-  // ==========================================
-
-  resetTasks() {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(dailyTasks)
+  async completeTask(taskId) {
+    const response = await fetch(
+      `${API_BASE_URL}/${taskId}/complete`,
+      {
+        method: "PATCH",
+        headers: getHeaders(),
+      }
     );
 
-    return dailyTasks;
-  }
-}
+    return handleResponse(response);
+  },
+};
 
-export default new TaskService();
+export default TaskService;

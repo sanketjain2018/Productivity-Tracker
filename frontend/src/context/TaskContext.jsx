@@ -6,22 +6,9 @@ import {
 } from "react";
 
 import TaskService from "../services/TaskService";
-
-import {
-  getTodayDateKey,
-  getTaskProgressByDate,
-  saveTaskProgressByDate,
-} from "../utils/taskStorage";
-
-// ==========================================
-// CREATE CONTEXT
-// ==========================================
+import { useAuth } from "./AuthContext";
 
 const TaskContext = createContext();
-
-// ==========================================
-// NORMALIZE TASK PRIORITY
-// ==========================================
 
 const normalizePriority = (priority) => {
   switch (
@@ -44,10 +31,6 @@ const normalizePriority = (priority) => {
   }
 };
 
-// ==========================================
-// NORMALIZE TASK ID
-// ==========================================
-
 const normalizeTaskId = (id) => {
   if (id === null || id === undefined) {
     return "";
@@ -56,232 +39,500 @@ const normalizeTaskId = (id) => {
   return String(id);
 };
 
-// ==========================================
-// NORMALIZE TASK
-// ==========================================
+const normalizeStatus = (status) => {
+  switch (
+    status?.toString().trim().toLowerCase()
+  ) {
+    case "completed":
+      return "completed";
+
+    case "todo":
+      return "pending";
+
+    case "pending":
+      return "pending";
+
+    default:
+      return "pending";
+  }
+};
 
 const normalizeTask = (task) => ({
   ...task,
 
+  id: normalizeTaskId(task.id),
+
   priority: normalizePriority(
     task.priority
   ),
+
+  status: normalizeStatus(
+    task.status
+  ),
 });
 
-// ==========================================
-// PROVIDER
-// ==========================================
+export const TaskProvider = ({ children }) => {
 
-export const TaskProvider = ({
-  children,
-}) => {
+  const { isAuthenticated } = useAuth();
+
   const [tasks, setTasks] = useState([]);
 
-  // ==========================================
+  const [summary, setSummary] = useState({
+    totalTasks: 0,
+    completedTasks: 0,
+    pendingTasks: 0,
+    progress: 0,
+  });
+
+  const [todayTasks, setTodayTasks] =
+    useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState(null);
+
+  // =========================
   // LOAD TASKS
-  // ==========================================
+  // =========================
 
   useEffect(() => {
-    const todayKey =
-      getTodayDateKey();
 
-    const savedProgress =
-      getTaskProgressByDate(todayKey);
+    const loadTasks = async () => {
 
-    const storedTasks =
-      TaskService.getTasks();
+      if (!isAuthenticated) {
 
-    // ========================================
-    // NORMALIZE STORED TASKS
-    // ========================================
+        setTasks([]);
 
-    const updatedTasks =
-      storedTasks.map((task) => ({
-        ...normalizeTask(task),
+        setTodayTasks([]);
 
-        status:
-          savedProgress[
-            task.id
-          ] === "completed"
-            ? "completed"
-            : task.status ?? "pending",
-      }));
+        setSummary({
+          totalTasks: 0,
+          completedTasks: 0,
+          pendingTasks: 0,
+          progress: 0,
+        });
 
-    setTasks(updatedTasks);
+        setLoading(false);
 
-    // Save normalized data
-    TaskService.saveTasks(
-      updatedTasks
-    );
-  }, []);
+        setError(null);
 
-  // ==========================================
-  // ADD TASK
-  // ==========================================
+        return;
+      }
 
-  const addTask = (task) => {
-    const normalizedTask =
-      normalizeTask(task);
+      try {
 
-    const updatedTasks = [
-      ...tasks,
-      normalizedTask,
-    ];
+        setLoading(true);
 
-    setTasks(updatedTasks);
+        setError(null);
 
-    TaskService.saveTasks(
-      updatedTasks
-    );
-  };
+        const [
+          taskResponse,
+          summaryResponse,
+          todayResponse,
+        ] = await Promise.all([
+          TaskService.getTasks(),
+          TaskService.getTaskSummary(),
+          TaskService.getTodayTasks(),
+        ]);
 
-  // ==========================================
-  // DELETE TASK
-  // ==========================================
+        const normalizedTasks =
+          (taskResponse || [])
+            .map(normalizeTask);
 
-  const deleteTask = (taskId) => {
-    const normalizedTaskId =
-      normalizeTaskId(taskId);
+        const normalizedTodayTasks =
+          (todayResponse || [])
+            .map(normalizeTask);
 
-    const updatedTasks =
-      tasks.filter(
-        (task) =>
-          normalizeTaskId(
-            task.id
-          ) !== normalizedTaskId
-      );
+        setTasks(normalizedTasks);
 
-    const taskWasDeleted =
-      updatedTasks.length <
-      tasks.length;
-
-    // Update React state
-    setTasks(updatedTasks);
-
-    // Update localStorage
-    TaskService.saveTasks(
-      updatedTasks
-    );
-
-    // Return result to caller
-    return taskWasDeleted;
-  };
-
-  // ==========================================
-  // UPDATE TASK
-  // ==========================================
-
-  const updateTask = (
-    updatedTask
-  ) => {
-    const normalizedTask =
-      normalizeTask(updatedTask);
-
-    const normalizedTaskId =
-      normalizeTaskId(
-        normalizedTask.id
-      );
-
-    const updatedTasks =
-      tasks.map((task) =>
-        normalizeTaskId(
-          task.id
-        ) === normalizedTaskId
-          ? normalizedTask
-          : task
-      );
-
-    setTasks(updatedTasks);
-
-    TaskService.saveTasks(
-      updatedTasks
-    );
-  };
-
-  // ==========================================
-  // TOGGLE TASK COMPLETE
-  // ==========================================
-
-  const toggleTaskComplete = (
-    taskId
-  ) => {
-    const todayKey =
-      getTodayDateKey();
-
-    const normalizedTaskId =
-      normalizeTaskId(taskId);
-
-    const updatedTasks =
-      tasks.map((task) =>
-        normalizeTaskId(
-          task.id
-        ) === normalizedTaskId
-          ? {
-              ...task,
-
-              status:
-                task.status ===
-                "completed"
-                  ? "pending"
-                  : "completed",
-            }
-          : task
-      );
-
-    setTasks(updatedTasks);
-
-    TaskService.saveTasks(
-      updatedTasks
-    );
-
-    saveTaskProgressByDate(
-      todayKey,
-      updatedTasks
-    );
-  };
-
-  // ==========================================
-  // TASK STATISTICS
-  // ==========================================
-
-  const totalTasks =
-    tasks.length;
-
-  const completedTasks =
-    tasks.filter(
-      (task) =>
-        task.status === "completed"
-    ).length;
-
-  const pendingTasks =
-    totalTasks -
-    completedTasks;
-
-  const progress =
-    totalTasks === 0
-      ? 0
-      : Math.round(
-          (completedTasks /
-            totalTasks) *
-            100
+        setTodayTasks(
+          normalizedTodayTasks
         );
 
-  // ==========================================
-  // PROVIDER
-  // ==========================================
+        setSummary({
+          totalTasks:
+            summaryResponse?.totalTasks || 0,
+
+          completedTasks:
+            summaryResponse?.completedTasks || 0,
+
+          pendingTasks:
+            summaryResponse?.pendingTasks || 0,
+
+          progress:
+            summaryResponse?.progress || 0,
+        });
+
+      } catch (err) {
+
+        console.error(
+          "Failed to load tasks:",
+          err
+        );
+
+        setError(
+          err.message ||
+          "Failed to load tasks"
+        );
+
+        setTasks([]);
+
+        setTodayTasks([]);
+
+      } finally {
+
+        setLoading(false);
+      }
+    };
+
+    loadTasks();
+
+  }, [isAuthenticated]);
+
+  // =========================
+  // ADD TASK
+  // =========================
+
+  const addTask = async (task) => {
+
+    try {
+
+      setError(null);
+
+      const createdTask =
+        await TaskService.addTask(task);
+
+      const normalizedTask =
+        normalizeTask(createdTask);
+
+      setTasks((previousTasks) => [
+        ...previousTasks,
+        normalizedTask,
+      ]);
+
+      return normalizedTask;
+
+    } catch (err) {
+
+      console.error(
+        "Failed to add task:",
+        err
+      );
+
+      setError(
+        err.message ||
+        "Failed to add task"
+      );
+
+      throw err;
+    }
+  };
+
+  // =========================
+  // DELETE TASK
+  // =========================
+
+  const deleteTask = async (taskId) => {
+
+    try {
+
+      setError(null);
+
+      const normalizedTaskId =
+        normalizeTaskId(taskId);
+
+      await TaskService.deleteTask(
+        normalizedTaskId
+      );
+
+      setTasks((previousTasks) =>
+        previousTasks.filter(
+          (task) =>
+            normalizeTaskId(task.id) !==
+            normalizedTaskId
+        )
+      );
+
+      setTodayTasks((previousTasks) =>
+        previousTasks.filter(
+          (task) =>
+            normalizeTaskId(task.id) !==
+            normalizedTaskId
+        )
+      );
+
+      await refreshSummary();
+
+      return true;
+
+    } catch (err) {
+
+      console.error(
+        "Failed to delete task:",
+        err
+      );
+
+      setError(
+        err.message ||
+        "Failed to delete task"
+      );
+
+      return false;
+    }
+  };
+
+  // =========================
+  // UPDATE TASK
+  // =========================
+
+  const updateTask = async (
+    updatedTask
+  ) => {
+
+    try {
+
+      setError(null);
+
+      const normalizedTask =
+        normalizeTask(updatedTask);
+
+      const response =
+        await TaskService.updateTask(
+          normalizedTask
+        );
+
+      const updatedTaskFromBackend =
+        normalizeTask(response);
+
+      const normalizedTaskId =
+        normalizeTaskId(
+          updatedTaskFromBackend.id
+        );
+
+      setTasks((previousTasks) =>
+        previousTasks.map((task) =>
+          normalizeTaskId(task.id) ===
+          normalizedTaskId
+            ? updatedTaskFromBackend
+            : task
+        )
+      );
+
+      await refreshTodayTasks();
+
+      await refreshSummary();
+
+      return updatedTaskFromBackend;
+
+    } catch (err) {
+
+      console.error(
+        "Failed to update task:",
+        err
+      );
+
+      setError(
+        err.message ||
+        "Failed to update task"
+      );
+
+      throw err;
+    }
+  };
+
+  // =========================
+  // COMPLETE TASK
+  // =========================
+
+  const toggleTaskComplete =
+    async (taskId) => {
+
+      try {
+
+        setError(null);
+
+        const normalizedTaskId =
+          normalizeTaskId(taskId);
+
+        const currentTask =
+          tasks.find(
+            (task) =>
+              normalizeTaskId(task.id) ===
+              normalizedTaskId
+          );
+
+        if (!currentTask) {
+          return;
+        }
+
+        let updatedTask;
+
+        if (
+          currentTask.status !==
+          "completed"
+        ) {
+
+          updatedTask =
+            await TaskService.completeTask(
+              normalizedTaskId
+            );
+
+        } else {
+
+          updatedTask =
+            await TaskService.updateTask({
+              ...currentTask,
+              status: "TODO",
+            });
+        }
+
+        const normalizedUpdatedTask =
+          normalizeTask(updatedTask);
+
+        setTasks((previousTasks) =>
+          previousTasks.map((task) =>
+            normalizeTaskId(task.id) ===
+            normalizedTaskId
+              ? normalizedUpdatedTask
+              : task
+          )
+        );
+
+        await refreshTodayTasks();
+
+        await refreshSummary();
+
+        return normalizedUpdatedTask;
+
+      } catch (err) {
+
+        console.error(
+          "Failed to toggle task:",
+          err
+        );
+
+        setError(
+          err.message ||
+          "Failed to update task status"
+        );
+
+        throw err;
+      }
+    };
+
+  // =========================
+  // REFRESH SUMMARY
+  // =========================
+
+  const refreshSummary = async () => {
+
+    try {
+
+      const response =
+        await TaskService.getTaskSummary();
+
+      setSummary({
+        totalTasks:
+          response?.totalTasks || 0,
+
+        completedTasks:
+          response?.completedTasks || 0,
+
+        pendingTasks:
+          response?.pendingTasks || 0,
+
+        progress:
+          response?.progress || 0,
+      });
+
+    } catch (err) {
+
+      console.error(
+        "Failed to refresh summary:",
+        err
+      );
+    }
+  };
+
+  // =========================
+  // REFRESH TODAY TASKS
+  // =========================
+
+  const refreshTodayTasks = async () => {
+
+    try {
+
+      const response =
+        await TaskService.getTodayTasks();
+
+      setTodayTasks(
+        (response || [])
+          .map(normalizeTask)
+      );
+
+    } catch (err) {
+
+      console.error(
+        "Failed to refresh today's tasks:",
+        err
+      );
+    }
+  };
+
+  // =========================
+  // DATE TASKS
+  // =========================
+
+  const getTasksByDate =
+    async (date) => {
+
+      try {
+
+        const response =
+          await TaskService.getTasksByDate(
+            date
+          );
+
+        return (response || [])
+          .map(normalizeTask);
+
+      } catch (err) {
+
+        console.error(
+          "Failed to load tasks by date:",
+          err
+        );
+
+        throw err;
+      }
+    };
 
   return (
     <TaskContext.Provider
       value={{
         tasks,
 
-        totalTasks,
+        todayTasks,
 
-        completedTasks,
+        summary,
 
-        pendingTasks,
+        loading,
 
-        progress,
+        error,
+
+        totalTasks:
+          summary.totalTasks,
+
+        completedTasks:
+          summary.completedTasks,
+
+        pendingTasks:
+          summary.pendingTasks,
+
+        progress:
+          summary.progress,
 
         addTask,
 
@@ -290,6 +541,12 @@ export const TaskProvider = ({
         updateTask,
 
         toggleTaskComplete,
+
+        refreshSummary,
+
+        refreshTodayTasks,
+
+        getTasksByDate,
       }}
     >
       {children}
@@ -297,15 +554,13 @@ export const TaskProvider = ({
   );
 };
 
-// ==========================================
-// CUSTOM HOOK
-// ==========================================
-
 export const useTaskContext = () => {
+
   const context =
     useContext(TaskContext);
 
   if (!context) {
+
     throw new Error(
       "useTaskContext must be used inside TaskProvider"
     );
